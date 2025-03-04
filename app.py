@@ -1,31 +1,18 @@
 import joblib
 import numpy as np
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask_cors import CORS  
 
-# โหลดโมเดลที่ฝึกไว้
-MODEL_PATH = "trained_voting_classifier.pkl"
-model = joblib.load(MODEL_PATH) if MODEL_PATH else None
-
-# แมปค่าขนาดเสื้อ
-SIZE_MAP = {
-    0: "XS",
-    1: "S",
-    2: "M",
-    3: "L",
-    4: "XL",
-    5: "XXL"
-}
-
-# ฟีเจอร์ที่ใช้ในการพยากรณ์
-FEATURES = ["age", "height", "weight"]
+final_model = joblib.load("trained_voting_classifier.pkl")
+model = final_model["model"]
+label_encoders = final_model["label_encoder"]
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  
 
 @app.route("/")
 def home():
-    return
+    return jsonify({"message": "Flask API is running on Render"})
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -33,28 +20,37 @@ def predict():
         data = request.get_json()
         print(f"🔹 Received Data: {data}")
 
-        # ตรวจสอบคีย์ที่จำเป็น
-        if not all(key in data for key in FEATURES):
-            return jsonify({"error": "Missing required fields"}), 400
+        if "age" not in data or "height" not in data or "weight" not in data:
+            return jsonify({"error": "Missing required fields: age, height, weight"}), 400
+        
+        age = data["age"]
+        height = data["height"]
+        weight = data["weight"]
 
-        # ดึงข้อมูลและแปลงเป็น float
-        input_values = np.array([[float(data["age"]), float(data["height"]), float(data["weight"])]])
-        print(f"Features: {input_values}")
+        features = [float(age), float(height), float(weight)]
+        print(f"Features: {features}")
 
-        # ตรวจสอบว่าโมเดลโหลดสำเร็จ
-        if model is None:
-            return jsonify({"error": "Model not found"}), 500
+        features_array = np.array([features]).reshape(1, -1)
+        
+        probabilities = model.predict_proba(features_array)[0]  
+        
+        prediction = model.predict(features_array)[0]
+        size_predicted = label_encoders.inverse_transform([prediction])[0]
+        
+        result = {
+            "prediction": size_predicted,
+            "probabilities": {}
+        }
+        
+        for i, size in enumerate(label_encoders.classes_):
+            result["probabilities"][size] = probabilities[i]
 
-        # พยากรณ์ขนาดเสื้อ
-        prediction = model.predict(input_values)[0]
-        size_prediction = SIZE_MAP.get(prediction, "Unknown Size")
-
-        print(f"Prediction: {size_prediction}")
-        return jsonify({"prediction": size_prediction})
+        print(f"Prediction: {size_predicted}, Probabilities: {result['probabilities']}")
+        return jsonify(result)
 
     except Exception as e:
         print(f"Server Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000, debug=True)
+    app.run(host="0.0.0.0", port=10000)
