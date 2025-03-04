@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 # โหลดโมเดลที่ฝึกไว้
-MODEL_PATH = "trained_voting_classifierV3.pkl"
+MODEL_PATH = "trained_voting_classifier.pkl"
 model = joblib.load(MODEL_PATH) if MODEL_PATH else None
 
 # แมปค่าขนาดเสื้อ
