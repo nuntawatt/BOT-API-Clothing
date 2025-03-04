@@ -3,7 +3,7 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS  
 
-final_model = joblib.load("trained_voting_classifier.pkl")
+final_model = joblib.load("trained_voting_classifierv1.pkl")
 model = final_model["model"]
 label_encoders = final_model["label_encoder"]
 
