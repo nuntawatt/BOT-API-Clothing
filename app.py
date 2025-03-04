@@ -25,7 +25,7 @@ CORS(app)
 
 @app.route("/")
 def home():
-    return jsonify({"message": "Flask API for size prediction is running"})
+    return
 
 @app.route("/predict", methods=["POST"])
 def predict():
